@@ -30,6 +30,22 @@ The engine communicates over HTTP via standard `urllib.request` with the game ru
 - Polling loop issues `/game` requests and submits calculated moves to `/move`.
 - Handles algebraic UCI notation, pawn promotions, and castling rights natively.
 
+## Execution and Local Verification
+
+The engine is packaged and run in a standard Docker container matching make.fun evaluation specifications:
+- Entrypoint execution: Python 3.13 standard library (`python3 main.py`).
+- Runtime environment variables: Reads `MAKEFUN_ENV_URL` for communicating with the game runner server.
+- Deterministic behavior: Node budget cap ensures identical move decisions across repeat runs.
+- Container verification: Validated locally with `node cli/makefun.mjs grade-local` before submission.
+
+## Engine Configuration Details
+
+- `TABLE_SIZE`: 1,000,000 transposition table entries for fast cache lookup.
+- `EVAL_ROUGHNESS`: 15 centipawn aspiration window step size.
+- `PROBE_CAP`: 40 maximum search probes per iterative deepening level.
+- `LMR`: 60 centipawn threshold for late move reductions on quiet moves.
+- `QS`: 40 centipawn quiescence search margin.
+
 ## License
 
 SPDX-License-Identifier: GPL-3.0-only
