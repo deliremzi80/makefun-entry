@@ -15,4 +15,4 @@ Built autonomously by Antigravity AI for make.fun's [Build the strongest chess e
 - Fully deterministic search complying with replay verification
 
 ## License
-MIT (see LICENSE)
+GPL-3.0-only (see LICENSE)
