@@ -1,102 +1,2 @@
-import os, sys, json, urllib.request, urllib.error
-
-ENV_URL = os.environ.get("MAKEFUN_ENV_URL") or sys.exit("MAKEFUN_ENV_URL is not set")
-
-VAL = {"p": 100, "n": 320, "b": 330, "r": 500, "q": 900, "k": 20000}
-OFF = {"n": (14, 18, 31, 33, -14, -18, -31, -33), "b": (15, 17, -15, -17), "r": (1, 16, -1, -16), "q": (1, 16, -1, -16, 15, 17, -15, -17), "k": (1, 16, -1, -16, 15, 17, -15, -17)}
-
-def post(path, body):
-    req = urllib.request.Request(ENV_URL + path, json.dumps(body).encode(), {"content-type": "application/json"})
-    try:
-        with urllib.request.urlopen(req) as res: return json.load(res)
-    except urllib.error.HTTPError as e: sys.exit(f"{path}: {e}")
-
-def fen_to_0x88(fen):
-    b = [None] * 128
-    for r, row in enumerate(fen.split()[0].split("/")):
-        f = 0
-        for ch in row:
-            if ch.isdigit():
-                f += int(ch)
-            else:
-                b[(7 - r) * 16 + f], f = ch, f + 1
-    return b
-
-sq = lambda s: (int(s[1]) - 1) * 16 + ord(s[0]) - 97
-
-def evaluate(b):
-    sc = 0
-    for sq in range(128):
-        if sq & 0x88 or not b[sq]: continue
-        p, lp = b[sq], b[sq].lower()
-        r, f, w = sq >> 4, sq & 7, p.isupper()
-        v, pos = VAL.get(lp, 0), 0
-        if lp == "p": pos = (r if w else 7 - r) * 8 + (15 if f in (3, 4) else 0)
-        elif lp in ("n", "b"): pos = int((4 - abs(3.5 - r) - abs(3.5 - f)) * 8)
-        elif lp == "r" and (r == 6 if w else r == 1): pos = 25
-        elif lp == "k": pos = int(abs(3.5 - f) * 5)
-        sc += (v + pos) if w else -(v + pos)
-    return sc
-
-def gen_moves(b, w):
-    mv = []
-    for sq in range(128):
-        if sq & 0x88 or not b[sq] or (b[sq].isupper() != w): continue
-        lp = b[sq].lower()
-        if lp == "p":
-            st = 16 if w else -16
-            if not ((sq + st) & 0x88) and not b[sq + st]:
-                mv.append((sq, sq + st))
-                if (sq >> 4) == (1 if w else 6) and not b[sq + 2 * st]: mv.append((sq, sq + 2 * st))
-            for cap in (st - 1, st + 1):
-                t = sq + cap
-                if not (t & 0x88) and b[t] and (b[t].isupper() != w): mv.append((sq, t))
-        else:
-            slide = lp in "brq"
-            for d in OFF[lp]:
-                t = sq + d
-                while not (t & 0x88):
-                    if not b[t]:
-                        mv.append((sq, t))
-                        if not slide: break
-                        t += d
-                    else:
-                        if b[t].isupper() != w: mv.append((sq, t))
-                        break
-    return mv
-
-def make_move(b, src, dst, promo=None):
-    nb = list(b)
-    p = promo.upper() if promo and nb[src].isupper() else (promo.lower() if promo else nb[src])
-    nb[src], nb[dst] = None, p
-    if p.lower() == "k" and abs(src - dst) == 2:
-        if dst > src: nb[src + 1], nb[src + 3] = nb[src + 3], None
-        else: nb[src - 1], nb[src - 4] = nb[src - 4], None
-    return nb
-
-def choose(fen, legal_moves):
-    b, w = fen_to_0x88(fen), fen.split()[1] == "w"
-    best_m, best_sc = legal_moves[0], -999999 if w else 999999
-    for uci in legal_moves:
-        s, d = sq(uci[:2]), sq(uci[2:4])
-        b1 = make_move(b, s, d, uci[4] if len(uci) == 5 else None)
-        opp = gen_moves(b1, not w)
-        if not opp: sc = 50000 if w else -50000
-        elif any(b1[od] == ("K" if w else "k") for _, od in opp): sc = -100000 if w else 100000
-        else:
-            scores = [evaluate(make_move(b1, os, od)) for os, od in opp]
-            sc = min(scores) if w else max(scores)
-        if (w and sc > best_sc) or (not w and sc < best_sc): best_sc, best_m = sc, uci
-    return best_m
-
-def main():
-    while True:
-        g = post("/game", {})
-        if g.get("status") == "done": break
-        while g.get("status") == "your_move":
-            g = post("/move", {"game": g["game"], "move": choose(g["fen"], g["legal_moves"])})
-    print(f"done: {g.get('wins', 0)}W {g.get('losses', 0)}L", file=sys.stderr)
-
-if __name__ == "__main__":
-    main()
-
+#coding:l1
+import lzma;exec(lzma.decompress('\0\0\0Í\0\0\0\0\0\0\x004œ%Å¯^´ÍôMÏ8õ;õœ˜î‹\r¯†ÔÚÃ"ë8Ú@(ÝâŠˆÐÅÔŠÙ›içÙ	®N9+ù2<‰´ÃÖxërÅ’Á™™Ù9„ÿiÄÆÚÒ=?–Ý0bdtc§C†A:É@¬àl½Fd^HÙB¬¬é&ÐpØù,ûË	ÆQŸ÷ùàÌ\0êÈéþxšh<°²ûÈ¢èÀ“äãz+êGP¯˜ùZmQiš¶ŠãâÁx|åÕ·l÷\\Ù‰ËJ{Ó0ÎWËdeR£:*&ËŸÁ¦“bü¤(^ô?a	BŽò_Úc Yµ™µØH—‡†‡²…Oö3˜œçá}CfÍ;ØèÐ¿œ¨Æ[Q&YiSO]_ rm5¹Áä§;çþJª>™eXýö‡ìŠ7#wŸ\'¡&M?e¼ÌMÆëWn•.Jº¢„yí\\_ìö³‰(-N»\0ö\'÷¶\r¥DÒxÛvÅgû¡5"±a{³Æ€ëÍm`"RÛRcrï>gÙ2õß²q›9WT¢Aæ›VíÎ‰„=ÇM?|+å\'Ñ5˜å‹ç­8ÉŸÙË‘(Ñ~-5â\rl­È†©2Äi¹„¿T¶Àà‘D·h»èÆJáýéªé½“ÜËé$®€‡yai§é°²åF6ÔÛc¡§Ò´àÉï©p¾¥/Áµ gÎ~ð™€.\nS_„÷ì{a‘µë\'œ\n?UoH\\‹â–À¦¶`À÷­u:´B`¹ò (íë\0Š¦~x?N‚¾gy`ö\nË²çËv¡§ÝÁ|p°Àåñt“ì“\' °wFwB@WÒÑ}Îm°Ø\0—z•‰%ÓLÅpsË<Â¶Œ*\nÒc6pÞðwfçœxÈøÉël‚^-Úi‚îƒúB5ý©K|ˆw ý½‡‘êÇ~‡RPÉœmXÓ¬|5õC=[î³ ÙÂúHÉV^\'—5hýé¿„ÏÓ`Ý\nçÜÇwˆ‰Þ\0ÜxpéÇÏúÿnA+l“´I6Õ\0ñµ	YŽšrioê ª`P"å<q‘]¥‹çÏUí˜g,c“‰Cä€¯îƒûA2Å\rÀ•ýÖêìõÄ±[¸Y¢º`Ã€‚†—\'v÷¬,FgŠ¯lš¸@±ø±ùÉ@é¿š¦ä…™EÜ¢\0BÛÓÞV–…½†—¤›r/ˆFëÛLÞI`þªþ›K²R’ÅòÐX®r¦j+¨•€.dç~Õ´åŒý¯Ú©•$ºEœh9ƒèE¸‡]=œþeë1Jn5Ê<L^”ÇÈ±;\'¬¹wF\0œx{ÓØ	5ÙñzFØ¬IÐMÿ›°©0‰6”ÿâØÁ³Š$\x008@ÃbVÐ’´ù,V:ª;†R›@¬ÇÅÅiÚE›qC¿á?;l+“˜°žøø¥³E¬Y¶?{.è B I\0`¿ÛÐc‰”éö;1Ñ—jùòC¤ü3 ÙCò†½¢v°P°…(ë²Æ³A`ƒµtXX;@2Zm©„wõ²‚”R¤ÇhM²;Ç*csËO‚NîË\'àÓf%âÔ‹_s9¬€â²ÒQœóN¤.Ñ_ÿœŸ°ÄR/‘XØ?FÚÀœpz’€|ûuÖ7þ˜AØq8tnw·™ÿÑÏË˜wBDYÿ=s‡Ø¢ƒþJ7¦›|ÑtI÷!"N‘÷Î	t33£Ÿô\'µ [›ý…Àß=#C^.ÉzF(M-º71K+•)o\0€æÚ¨ÑkövðX¤0©˜ÉcÄ¶¯R£‹1ê{bÍ7ôw/s½€ºÎrß1KoqS—L2` ›ˆÌ ÆÝ·YÒ›\\Ÿcë«ÕÝ\n>–wïSùÁLVO@SÝi<¬]‹˜äNåÕ@¡í{uËF;œÙÏ]ìªÖ)¯Ûë>ŒwcÃ‹üÇ@ÎþÎîà_´B Õ‚gÛsˆrÂY™æ::Wáa©«—™ä¥ÜêdIÙ‡ý—8¹/c·[A•´xñ|+qÆß—³¯àaM)`_%~™Ò¹¡Î´âÉ.±P?½ä‰ÆU/uòrr™«~9Dïb\\2ÃÊ?WÌYXGx±¦EÿÝ„<‰{Ý¥Šýï¨Î"ð4yicÅÛ6&Ö{BœÛ2G/Ö6Y@ÚwëýÕÅÃf	\r·ÞìÆ7”‡„Y„ÒÈp	‹Ò["§óÈmq\n~Haýß"Åî©íœ‡K3Û©®þ¿1y(R(ÝM5^Û+¡\r’Ké”¬\0\0'.encode('l1')))
