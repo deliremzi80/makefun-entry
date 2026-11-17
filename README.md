@@ -19,4 +19,4 @@ An original, fast-paced neon arcade survival shooter written in pure HTML5 Canva
 - **R**: Restart game on Game Over
 
 ## License
-MIT (see [LICENSE](file:///home/mahof/sandbox_makefun/makefun-bestgame/LICENSE))
+MIT (see [LICENSE](file:///home/mahof/sandbox_makefun/bestgame-repo/LICENSE))
