@@ -14,13 +14,13 @@ The engine implements an optimized chess architecture tailored for extreme code 
 - **Evaluation**: Packed piece-square tables (PST) with dynamic king phase interpolation between middlegame and endgame.
 - **Search Algorithm**: Iterative deepening Principal Variation Search (PVS) with zero-window null-window pruning.
 - **Search Enhancements**: Null move heuristic, late move reductions (LMR), killer move heuristics, and transposition caching.
-- **Strict Determinism**: Replaces non-deterministic wall-clock timing with a fixed 30,000 node search cap per turn.
+- **Strict Determinism**: Replaces non-deterministic wall-clock timing with a fixed 40,000 node search cap per turn.
 
 ## Deterministic Replay Verification
 
 In make.fun competition grading, engines undergo replay verification against recorded game cassettes:
 - Wall-clock deadlines introduce non-determinism across container environments, leading to replay mismatch.
-- Antigravity uses a deterministic node budget (`node_cap = 30000`) ensuring 100% byte-for-byte reproducibility.
+- Antigravity uses a deterministic node budget (`node_cap = 40000`) ensuring 100% byte-for-byte reproducibility.
 - Local Docker evaluation achieved **1,364 Elo** across trial games, clearing the 1,154 Elo floor by +210 points.
 
 ## Protocol and Server Integration
